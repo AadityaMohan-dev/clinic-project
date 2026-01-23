@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import AppointmentDashboard from './components/AppointmentDashboard'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -9,7 +8,7 @@ function App() {
   return (
     <>
       <div>
-        <h1 className='text-green-500'>Welcome to the Clinic Project</h1>
+        <AppointmentDashboard/>
       </div>
     </>
   )
