@@ -1,18 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Hero from './components/sections/hero';
+import TestimonialsSection from './components/ui/testimonial-v2';
+import { AuroraBackground } from './components/ui/aurora-background';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App() {
   return (
-    <>
-      <div>
-        <h1 className='text-green-500'>Welcome to the Clinic Project</h1>
+    <AuroraBackground>
+      {/* We use bg-transparent or bg-white/50 so the Aurora background 
+        shows through slightly, or you can keep sections solid white if preferred.
+        Based on "background throughout the website", I'll make the containers transparent.
+      */}
+      
+      {/* 1. Hero Section (Responsive YUME Design) */}
+      <div className="bg-transparent">
+        <Hero />
       </div>
-    </>
-  )
-}
 
-export default App
+      {/* 2. Review Scroll Section */}
+      <div className="bg-transparent border-t border-neutral-200/50">
+         <TestimonialsSection />
+      </div>
+    </AuroraBackground>
+  );
+}
