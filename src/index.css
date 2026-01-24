@@ -1,4 +1,31 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+/* 1. Define the Aurora Animation manually */
+@theme {
+  --animate-aurora: aurora 60s linear infinite;
+
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
+}
+
+/* 2. Manually define the colors needed for the Aurora 
+   (Since the plugin doesn't work in v4, we just hardcode them) */
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --transparent: transparent;
+  --blue-500: #3b82f6;
+  --indigo-300: #a5b4fc;
+  --blue-300: #93c5fd;
+  --violet-200: #ddd6fe;
+  --blue-400: #60a5fa;
+  
+  /* Font setting */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}

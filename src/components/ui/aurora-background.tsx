@@ -14,8 +14,7 @@ export const AuroraBackground = ({
   ...props
 }: AuroraBackgroundProps) => {
   return (
-    <main className="relative w-full min-h-screen bg-zinc-50 transition-bg">
-      <div
+      <main className={cn("relative flex flex-col h-full min-h-screen items-center justify-center bg-transparent text-slate-950 transition-bg", className)} {...props}>      <div
         className={cn(
           "absolute inset-0 overflow-hidden pointer-events-none",
           className

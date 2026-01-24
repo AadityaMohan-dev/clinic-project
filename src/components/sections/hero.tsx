@@ -1,17 +1,23 @@
 import { Copy, Grip } from 'lucide-react'; // 'Grip' looks like the menu dots
 import { motion } from 'framer-motion';
+import { ButtonColorful } from '../ui/button-colorful';
 
 export default function Hero() {
   return (
-    <section className="relative w-full pt-6 pb-20 px-6 md:px-12 flex flex-col bg-white overflow-hidden">
+    <section className="relative w-full pt-6 pb-20 px-6 md:px-12 flex flex-col bg-transparent overflow-hidden">
       
       {/* --- HEADER (Logo + Menu) --- */}
       {/* This matches the top of your mobile screenshot */}
       <nav className="flex justify-between items-center w-full mb-12 md:mb-20 max-w-[1400px] mx-auto">
-        <span className="text-xl font-bold tracking-tight uppercase">YUYA</span>
-        <button className="p-2 -mr-2 text-neutral-900">
-          <Grip size={28} /> 
-        </button>
+        <span className="text-xl font-bold tracking-tight uppercase">O' Dental Clinic</span>
+{/* Book Appointment Button */}
+        <div className="-mr-2">
+            <ButtonColorful 
+              label="Book Appointment" 
+              onClick={() => console.log("Booking clicked")}
+            />
+        </div>
+      
       </nav>
 
       {/* --- MAIN CONTENT --- */}
@@ -29,7 +35,7 @@ export default function Hero() {
             transition={{ delay: 0.2, duration: 0.8 }}
             className="order-1 md:order-2 self-start md:self-end md:mb-12"
           >
-             <div className="w-28 h-28 md:w-40 md:h-40 rounded-full overflow-hidden bg-neutral-100">
+             <div className="w-30 h-30 md:w-40 md:h-40 rounded-full overflow-hidden bg-neutral-100">
                <img 
                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400&h=400" 
                  alt="Portrait" 
@@ -46,7 +52,7 @@ export default function Hero() {
              transition={{ duration: 0.8, ease: "easeOut" }}
              className="order-2 md:order-1 text-[23vw] md:text-[13rem] leading-[0.8] font-bold tracking-tighter text-neutral-950 mt-4 md:mt-0"
           >
-            .YUME
+            Shirley
           </motion.h1>
 
         </div>
@@ -59,7 +65,7 @@ export default function Hero() {
              transition={{ delay: 0.1, duration: 0.8, ease: "easeOut" }}
              className="text-[23vw] md:text-[13rem] leading-[0.8] font-bold tracking-tighter text-neutral-950"
            >
-            YASKUMI
+            Ma
           </motion.h1>
         </div>
 
@@ -73,9 +79,9 @@ export default function Hero() {
             transition={{ delay: 0.4 }}
             className="md:col-span-4 flex items-center gap-2"
           >
-            <span className="text-lg md:text-xl font-medium">hello@yume.com</span>
+            <span className="text-lg md:text-xl font-medium">replyodentalclinic@gmail.com</span>
             <button 
-              onClick={() => navigator.clipboard.writeText('hello@yume.com')}
+              onClick={() => navigator.clipboard.writeText('replyodentalclinic@gmail.com')}
               className="p-1 hover:bg-neutral-100 rounded transition-colors"
               aria-label="Copy email"
             >
@@ -93,8 +99,8 @@ export default function Hero() {
             transition={{ delay: 0.5 }}
             className="md:col-span-6"
           >
-            <p className="text-xl md:text-4xl font-normal leading-snug md:leading-snug text-neutral-900">
-              Hello, I'm a freelancer specializing in minimal design with 10 years of expertise — based in Tokyo, working remote. Let's create!
+            <p className="text-lg md:text-4xl font-medium leading-snug md:leading-snug text-neutral-900">
+              Hello, I'm a Dental Surgeon specializing in Implant & Cosmetic Dentistry with decades of expertise — based in Ghaziabad. Let's craft your perfect smile!
             </p>
           </motion.div>
         </div>

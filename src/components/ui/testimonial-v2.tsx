@@ -146,9 +146,9 @@ export default function TestimonialsSection() {
       <div className="container px-4 mx-auto">
         <div className="flex flex-col items-center justify-center max-w-[540px] mx-auto mb-16">
           <div className="flex justify-center">
-            <div className="border border-neutral-300 py-1 px-4 rounded-full text-xs font-semibold tracking-wide uppercase text-neutral-600 bg-neutral-100/50 transition-colors">
+            {/* <div className="border border-neutral-300 py-1 px-4 rounded-full text-xs font-semibold tracking-wide uppercase text-neutral-600 bg-neutral-100/50 transition-colors">
               Testimonials
-            </div>
+            </div> */}
           </div>
 
           <h2 id="testimonials-heading" className="text-4xl md:text-5xl font-extrabold tracking-tight mt-6 text-center text-neutral-900 transition-colors">
