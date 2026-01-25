@@ -6,12 +6,14 @@ import Header from './navbar/Header';
 import Footer from './navbar/Footer';
 import AppointmentDashboard from './components/AppointmentDashboard';
 import PatientsDetails from './components/PatientsDetails';
+import AddAppointment from './components/modal/AddAppointment';
+import { Edit } from 'lucide-react';
+import EditAppointment from './components/modal/EditAppointment';
 
 export default function App() {
   return (
 
     <>
-    
     <AppointmentDashboard/>
     <PatientsDetails/>
     <Footer/>

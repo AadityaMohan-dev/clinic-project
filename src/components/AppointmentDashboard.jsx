@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, Clock, User, FileText, X, Filter } from "lucide-react";
+import { Search, Calendar, Clock, User, FileText, X, Filter, Edit } from "lucide-react";
 import { sampleAppointments as appointments } from "../data/data";
+import EditAppointment from "./modal/EditAppointment";
 
 function AppointmentDashboard() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [search, setSearch] = useState("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredAppointments = useMemo(() => {
     return appointments
@@ -45,6 +47,13 @@ function AppointmentDashboard() {
       pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
     };
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  const handleEditClick = () => {
+    setIsEditModalOpen(true);
+  };
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
   };
 
   return (
@@ -220,7 +229,9 @@ function AppointmentDashboard() {
                         <button className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors font-medium">
                           View Details
                         </button>
-                        <button className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors font-medium">
+                        <button
+                        onClick={handleEditClick}
+                         className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors font-medium">
                           Edit
                         </button>
                       </div>
@@ -231,6 +242,14 @@ function AppointmentDashboard() {
             </div>
           )}
         </div>
+
+        {/* Edit Appointment Modal */}
+        {isEditModalOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+  <EditAppointment onClose={handleCloseEditModal} />
+</div>
+
+        )}
 
         {/* Responsive Footer Stats */}
         {filteredAppointments.length > 0 && (
