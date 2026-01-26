@@ -8,7 +8,7 @@ export default function App() {
   return (
 
     <>
-    {/* <Header/> */}
+    <Header/>
     {/* <Auth/> */}
     <AppointmentDashboard/>
     <PatientsDetails/>
