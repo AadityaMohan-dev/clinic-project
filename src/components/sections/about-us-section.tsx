@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+// FIX 1: Added 'useState' back to the imports
 import { useState, useEffect, useRef } from "react"
 import {
   Sparkles,
@@ -13,23 +14,22 @@ import {
   Users,
   Calendar,
   CheckCircle,
-  Gem, // Added Gem for Tooth Jewellery
+  Gem,
   Star,
   ArrowRight,
   Zap,
   TrendingUp,
-  Baby, // Added Baby for Milk Teeth
+  Baby,
 } from "lucide-react"
-import { motion, useScroll, useTransform, useInView, useSpring } from "framer-motion"
+// FIX 2: Imported 'Variants' type to fix the animation errors
+import { motion, useScroll, useTransform, useInView, useSpring, Variants } from "framer-motion"
 
 export default function AboutUsSection() {
-  const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(sectionRef, { once: false, amount: 0.1 })
   const isStatsInView = useInView(statsRef, { once: false, amount: 0.3 })
 
-  // Parallax effect for decorative elements
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"],
@@ -40,11 +40,8 @@ export default function AboutUsSection() {
   const rotate1 = useTransform(scrollYProgress, [0, 1], [0, 20])
   const rotate2 = useTransform(scrollYProgress, [0, 1], [0, -20])
 
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
-  const containerVariants = {
+  // FIX 3: Explicitly typed as 'Variants' so TypeScript accepts "easeOut"
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -55,7 +52,8 @@ export default function AboutUsSection() {
     },
   }
 
-  const itemVariants = {
+  // FIX 4: Explicitly typed as 'Variants'
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
@@ -64,7 +62,6 @@ export default function AboutUsSection() {
     },
   }
 
-  // UPDATED: Services based on the Clinic Letterhead
   const services = [
     {
       icon: <Sparkles className="w-6 h-6" />,
@@ -99,7 +96,7 @@ export default function AboutUsSection() {
       position: "right",
     },
     {
-      icon: <Syringe className="w-6 h-6" />, // Using Syringe as placeholder for 'Prostho' or similar
+      icon: <Syringe className="w-6 h-6" />,
       secondaryIcon: <CheckCircle className="w-4 h-4 absolute -top-1 -right-1 text-blue-300" />,
       title: "Crowns & Dentures",
       description:
@@ -129,7 +126,6 @@ export default function AboutUsSection() {
       ref={sectionRef}
       className="w-full py-24 px-6 md:px-12 bg-transparent text-neutral-900 overflow-hidden relative"
     >
-      {/* Decorative background elements */}
       <motion.div
         className="absolute top-20 left-10 w-64 h-64 rounded-full bg-blue-500/5 blur-3xl"
         style={{ y: y1, rotate: rotate1 }}
@@ -170,7 +166,6 @@ export default function AboutUsSection() {
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Left Column */}
           <div className="space-y-16">
             {services
               .filter((service) => service.position === "left")
@@ -188,7 +183,6 @@ export default function AboutUsSection() {
               ))}
           </div>
 
-          {/* Center Image (REVERTED TO IMAGE AS REQUESTED) */}
           <div className="flex justify-center items-center order-first md:order-none mb-8 md:mb-0">
             <motion.div className="relative w-full max-w-xs" variants={itemVariants}>
               <motion.div
@@ -225,7 +219,6 @@ export default function AboutUsSection() {
                 transition={{ duration: 0.8, delay: 0.6 }}
               ></motion.div>
 
-              {/* Floating accent elements */}
               <motion.div
                 className="absolute -top-4 -right-8 w-16 h-16 rounded-full bg-blue-600/10"
                 initial={{ opacity: 0, y: 20 }}
@@ -243,7 +236,6 @@ export default function AboutUsSection() {
             </motion.div>
           </div>
 
-          {/* Right Column */}
           <div className="space-y-16">
             {services
               .filter((service) => service.position === "right")
@@ -262,7 +254,6 @@ export default function AboutUsSection() {
           </div>
         </div>
 
-        {/* Stats Section */}
         <motion.div
           ref={statsRef}
           className="mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
@@ -282,7 +273,6 @@ export default function AboutUsSection() {
           ))}
         </motion.div>
 
-        {/* CTA Section */}
         <motion.div
           className="mt-20 bg-neutral-900 text-white p-8 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6"
           initial={{ opacity: 0, y: 30 }}
@@ -312,10 +302,7 @@ interface ServiceItemProps {
   secondaryIcon?: React.ReactNode
   title: string
   description: string
-  variants: {
-    hidden: { opacity: number; y?: number }
-    visible: { opacity: number; y?: number; transition: { duration: number; ease: string } }
-  }
+  variants: Variants // FIX 5: Use correct type here
   delay: number
   direction: "left" | "right"
 }
@@ -368,6 +355,7 @@ interface StatCounterProps {
 function StatCounter({ icon, value, label, suffix, delay }: StatCounterProps) {
   const countRef = useRef(null)
   const isInView = useInView(countRef, { once: false })
+  // FIX 6: useState is now properly imported at the top
   const [hasAnimated, setHasAnimated] = useState(false)
 
   const springValue = useSpring(0, {

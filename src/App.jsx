@@ -1,38 +1,29 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Hero from './components/sections/hero';
-import TestimonialsSection from './components/ui/testimonial-v2';
 import { AuroraBackground } from './components/ui/aurora-background';
+import TestimonialsSection from './components/ui/testimonial-v2';
 import MapSection from './components/sections/map-section';
 import AboutUsSection from './components/sections/about-us-section';
+import Auth from './auth/Auth';
 import Header from './navbar/Header';
-import Footer from './navbar/Footer';
 
-export default function App() {
+import Footer from './navbar/Footer';
+import AppointmentDashboard from './components/AppointmentDashboard';
+import PatientsDetails from './components/PatientsDetails';
+
+function Home() {
   return (
 
     <>
-    
     <AuroraBackground>
-      {/* We use bg-transparent or bg-white/50 so the Aurora background 
-        shows through slightly, or you can keep sections solid white if preferred.
-        Based on "background throughout the website", I'll make the containers transparent.
-      */}
-      
-      {/* 1. Hero Section (Responsive YUME Design) */}
       <div className="bg-transparent">
         <Hero />
-
       </div>
-
-      {/* 2. Review Scroll Section */}
-      {/* for a line */}
-      {/* <div className="bg-transparent border-t border-neutral-200/50"> */} 
       <div className="bg-transparent ">
          <TestimonialsSection />
       </div>
-
-      {/* 3. Map Section */}
       <div className="bg-transparent pb-10">
-        <MapSection />
+          <MapSection />
       </div>
     </AuroraBackground>
 
@@ -40,7 +31,27 @@ export default function App() {
       <div className="bg-transparent">
         <AboutUsSection />
       </div>
- 
+
     </>
+  );
+
+}
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/about" element={<><Header/> <AboutUsSection /></>} />
+        <Route path="/services" element={<><Header/> <AboutUsSection /></>} />
+        <Route path="/contact" element={<><Header/> <MapSection /></>} />
+        <Route path="/dashboard" element={<>
+              <Header/>
+              <AppointmentDashboard />
+              <PatientsDetails />
+              <Footer/>
+            </>} />
+      </Routes>
+    </Router>
   );
 }
