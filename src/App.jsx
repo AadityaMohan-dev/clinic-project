@@ -8,8 +8,8 @@ export default function App() {
   return (
 
     <>
-    <Header/>
-    {/* <Auth/> */}
+    {/* <Header/> */}
+    <Auth/>
     <AppointmentDashboard/>
     <PatientsDetails/>
     <Footer/>
