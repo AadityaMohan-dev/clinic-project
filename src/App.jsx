@@ -2,6 +2,7 @@ import Hero from './components/sections/hero';
 import TestimonialsSection from './components/ui/testimonial-v2';
 import { AuroraBackground } from './components/ui/aurora-background';
 import MapSection from './components/sections/map-section';
+import AboutUsSection from './components/sections/about-us-section';
 import Header from './navbar/Header';
 import Footer from './navbar/Footer';
 
@@ -34,6 +35,11 @@ export default function App() {
         <MapSection />
       </div>
     </AuroraBackground>
+
+    {/* 2. Add About Section Here */}
+      <div className="bg-transparent">
+        <AboutUsSection />
+      </div>
  
     </>
   );
