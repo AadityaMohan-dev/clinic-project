@@ -1,8 +1,10 @@
 import { Copy, Grip } from 'lucide-react'; // 'Grip' looks like the menu dots
 import { motion } from 'framer-motion';
 import { ButtonColorful } from '../ui/button-colorful';
+import { useNavigate } from 'react-router-dom';
 
 export default function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="relative w-full pt-6 pb-20 px-6 md:px-12 flex flex-col bg-transparent overflow-hidden">
       
@@ -14,7 +16,7 @@ export default function Hero() {
         <div className="-mr-2">
             <ButtonColorful 
               label="Book Appointment" 
-              onClick={() => console.log("Booking clicked")}
+              onClick={() => navigate('/login')}
             />
         </div>
       

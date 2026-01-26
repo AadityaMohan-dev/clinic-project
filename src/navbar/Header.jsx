@@ -5,7 +5,7 @@ function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { name: "Home", href: "/" },
+    { name: "Home", href: "/dashboard" },
     { name: "About", href: "/about" },
     { name: "Services", href: "/services" },
     { name: "Contact", href: "/contact" },
