@@ -9,10 +9,10 @@ export default function App() {
 
     <>
     {/* <Header/> */}
-    <Auth/>
-    {/* <AppointmentDashboard/>
-    <PatientsDetails/> */}
-    {/* <Footer/> */}
+    {/* <Auth/> */}
+    <AppointmentDashboard/>
+    <PatientsDetails/>
+    <Footer/>
     </>
   );
 }

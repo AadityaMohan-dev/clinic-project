@@ -1,12 +1,27 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, Clock, User, FileText, X, Filter, Edit } from "lucide-react";
+import { Search, Calendar, Clock, User, FileText, X, Filter } from "lucide-react";
 import { sampleAppointments as appointments } from "../data/data";
 import EditAppointment from "./modal/EditAppointment";
+import AddAppointment from "./modal/AddAppointment";
 
 function AppointmentDashboard() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [search, setSearch] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+  const handleAddAppointment = (appointmentData) => {
+    console.log('New appointment:', appointmentData);
+    // Add your logic to save the appointment
+    // Example: setAppointments([...appointments, { ...appointmentData, id: Date.now() }]);
+  };
+
+  const handleEditAppointment = (appointmentData) => {
+    console.log('Updated appointment:', appointmentData);
+    // Add your logic to update the appointment
+    // Example: setAppointments(appointments.map(a => a.id === appointmentData.id ? appointmentData : a));
+  };
 
   const filteredAppointments = useMemo(() => {
     return appointments
@@ -49,17 +64,28 @@ function AppointmentDashboard() {
     return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  const handleEditClick = () => {
+  const handleEditClick = (appointment) => {
+    setSelectedAppointment(appointment);
     setIsEditModalOpen(true);
   };
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
+    setSelectedAppointment(null);
+  };
+
+  const handleOpenAddModal = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Responsive Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
@@ -71,11 +97,14 @@ function AppointmentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <button className="hidden sm:flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm lg:text-base">
+              <button className="hidden sm:flex items-center gap-2 px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-gray-700 font-medium text-sm lg:text-base">
                 <Filter className="w-4 h-4" />
                 <span>Export</span>
               </button>
-              <button className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base shadow-lg shadow-blue-500/30">
+              <button
+                onClick={handleOpenAddModal}
+                className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-medium text-sm lg:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40"
+              >
                 <span className="hidden sm:inline">+ New Appointment</span>
                 <span className="sm:hidden">+ New</span>
               </button>
@@ -160,7 +189,7 @@ function AppointmentDashboard() {
               {filteredAppointments.map((appt) => (
                 <div
                   key={appt.id}
-                  className="p-4 sm:p-5 lg:p-6 hover:bg-gray-50 transition-all duration-200 cursor-pointer group"
+                  className="p-4 sm:p-5 lg:p-6 hover:bg-gray-50 transition-all duration-200 group"
                 >
                   {/* Responsive Card Layout */}
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -230,8 +259,9 @@ function AppointmentDashboard() {
                           View Details
                         </button>
                         <button
-                        onClick={handleEditClick}
-                         className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors font-medium">
+                          onClick={() => handleEditClick(appt)}
+                          className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+                        >
                           Edit
                         </button>
                       </div>
@@ -242,14 +272,6 @@ function AppointmentDashboard() {
             </div>
           )}
         </div>
-
-        {/* Edit Appointment Modal */}
-        {isEditModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-  <EditAppointment onClose={handleCloseEditModal} />
-</div>
-
-        )}
 
         {/* Responsive Footer Stats */}
         {filteredAppointments.length > 0 && (
@@ -268,6 +290,22 @@ function AppointmentDashboard() {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {isEditModalOpen && selectedAppointment && (
+        <EditAppointment
+          appointment={selectedAppointment}
+          onClose={handleCloseEditModal}
+          onSubmit={handleEditAppointment}
+        />
+      )}
+
+      {isAddModalOpen && (
+        <AddAppointment
+          onClose={handleCloseAddModal}
+          onSubmit={handleAddAppointment}
+        />
+      )}
 
       {/* Custom scrollbar hide */}
       <style>{`
