@@ -9,16 +9,18 @@ import Header from './navbar/Header';
 import Footer from './navbar/Footer';
 import AppointmentDashboard from './components/AppointmentDashboard';
 import PatientsDetails from './components/PatientsDetails';
+import PatientDashboard from './components/PatientDashboard'
 
 // Layout Component using Outlet
 function Layout() {
   return (
     <>
       
+      <Header/>
       <main className="min-h-screen">
         <Outlet />
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }
@@ -77,7 +79,7 @@ export default function App() {
         <Route path="/about" element={<><Header/> <AboutUsSection /></>} />
         <Route path="/services" element={<><Header/> <AboutUsSection /></>} />
         <Route path="/contact" element={<><Header/> <MapSection /></>} />
-        <Route path="/patients/details/*" element={<PatientsDetails/>} />
+        <Route path="/patients/:id" element={<PatientsDetails/>} />
         <Route path="/dashboard" element={<AppointmentDashboard />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
