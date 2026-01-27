@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+// 1. FIXED: Imported useNavigate
+import { useNavigate } from "react-router-dom"; 
 import Wavy from "../assets/wavy.png";
 
 function Auth() {
+  const navigate = useNavigate(); 
   const [isSignIn, setIsSignIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -53,7 +56,16 @@ function Auth() {
     e.preventDefault();
     if (validateForm()) {
       console.log("Form submitted:", formData);
-      // Add your authentication logic here
+      
+      // 2. FIXED: Added Redirection Logic
+      // Simulate API call delay
+      setTimeout(() => {
+        // Optional: Set a token to simulate a logged-in state
+        localStorage.setItem("userToken", "demo-token");
+        
+        // Redirect to the dashboard
+        navigate("/dashboard");
+      }, 500);
     }
   };
 

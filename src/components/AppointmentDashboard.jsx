@@ -169,7 +169,7 @@ function AppointmentDashboard() {
         </div>
 
         {/* Responsive Appointments List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[400px]">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-130">
           {filteredAppointments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 sm:py-16 lg:py-20 px-4">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
