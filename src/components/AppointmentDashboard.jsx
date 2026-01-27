@@ -3,6 +3,7 @@ import { Search, Calendar, Clock, User, FileText, X, Filter } from "lucide-react
 import { sampleAppointments as appointments } from "../data/data";
 import EditAppointment from "./modal/EditAppointment";
 import AddAppointment from "./modal/AddAppointment";
+import { Link } from "react-router-dom";
 
 function AppointmentDashboard() {
   const [statusFilter, setStatusFilter] = useState("active");
@@ -255,9 +256,9 @@ function AppointmentDashboard() {
                       
                       {/* Actions */}
                       <div className="flex gap-2">
-                        <button className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors font-medium">
+                        <Link to={`/patients/details/${appt.id}`} className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors font-medium">
                           View Details
-                        </button>
+                        </Link>
                         <button
                           onClick={() => handleEditClick(appt)}
                           className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors font-medium"

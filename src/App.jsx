@@ -77,9 +77,8 @@ export default function App() {
         <Route path="/about" element={<><Header/> <AboutUsSection /></>} />
         <Route path="/services" element={<><Header/> <AboutUsSection /></>} />
         <Route path="/contact" element={<><Header/> <MapSection /></>} />
-        <Route path="/dashboard" element={
-              <AppointmentDashboard />
-            } />
+        <Route path="/patients/details/*" element={<PatientsDetails/>} />
+        <Route path="/dashboard" element={<AppointmentDashboard />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         
