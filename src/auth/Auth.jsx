@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
-// 1. FIXED: Imported useNavigate
+import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom"; 
-import Wavy from "../assets/wavy.png";
+import wavy from "../assets/wavy.png";
 
 function Auth() {
   const navigate = useNavigate(); 
   const [isSignIn, setIsSignIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     email: "",
@@ -40,6 +40,8 @@ function Auth() {
     
     if (!isSignIn && !formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
+    } else if (!isSignIn && formData.phone.trim() && !/^[+]?[\d\s()-]+$/.test(formData.phone)) {
+      newErrors.phone = "Phone number is invalid";
     }
     
     if (!formData.password) {
@@ -52,20 +54,40 @@ function Auth() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log("Form submitted:", formData);
-      
-      // 2. FIXED: Added Redirection Logic
-      // Simulate API call delay
-      setTimeout(() => {
-        // Optional: Set a token to simulate a logged-in state
-        localStorage.setItem("userToken", "demo-token");
-        
-        // Redirect to the dashboard
-        navigate("/dashboard");
-      }, 500);
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Mock authentication
+      const userData = {
+        email: formData.email,
+        name: formData.name || formData.email.split('@')[0],
+        role: "patient",
+        token: `demo-token-${Date.now()}`,
+      };
+
+      // Store user data
+      localStorage.setItem("userToken", userData.token);
+      localStorage.setItem("userData", JSON.stringify(userData));
+
+      console.log(isSignIn ? "Sign In successful:" : "Sign Up successful:", userData);
+
+      // Redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error("Authentication error:", error);
+      setErrors({ submit: "Authentication failed. Please try again." });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,6 +95,11 @@ function Auth() {
     setIsSignIn(!isSignIn);
     setErrors({});
     setFormData({ email: "", password: "", name: "", phone: "" });
+  };
+
+  const handleSocialLogin = (provider) => {
+    console.log(`${provider} login clicked`);
+    // Implement social login logic here
   };
 
   return (
@@ -84,8 +111,11 @@ function Auth() {
             {/* Logo/Brand */}
             <div className="mb-6 sm:mb-8">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-xl sm:text-2xl">O</span>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl blur-sm opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold text-xl sm:text-2xl">O</span>
+                  </div>
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
@@ -106,26 +136,35 @@ function Auth() {
               <button
                 onClick={switchMode}
                 type="button"
+                disabled={isLoading}
                 className={`flex-1 py-2.5 sm:py-3 px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-300 ${
                   isSignIn
                     ? "bg-white text-blue-600 shadow-md"
                     : "text-gray-600 hover:text-gray-900"
-                }`}
+                } ${isLoading ? "cursor-not-allowed opacity-50" : ""}`}
               >
                 Sign In
               </button>
               <button
                 onClick={switchMode}
                 type="button"
+                disabled={isLoading}
                 className={`flex-1 py-2.5 sm:py-3 px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-300 ${
                   !isSignIn
                     ? "bg-white text-blue-600 shadow-md"
                     : "text-gray-600 hover:text-gray-900"
-                }`}
+                } ${isLoading ? "cursor-not-allowed opacity-50" : ""}`}
               >
                 Sign Up
               </button>
             </div>
+
+            {/* Error Message */}
+            {errors.submit && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{errors.submit}</p>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
@@ -142,16 +181,15 @@ function Auth() {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
+                      disabled={isLoading}
                       placeholder="John Doe"
                       className={`w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 ${
                         errors.name ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
-                      }`}
+                      } ${isLoading ? "bg-gray-50 cursor-not-allowed" : ""}`}
                     />
                   </div>
                   {errors.name && (
-                    <p className="text-xs sm:text-sm text-red-600 flex items-center gap-1">
-                      {errors.name}
-                    </p>
+                    <p className="text-xs sm:text-sm text-red-600">{errors.name}</p>
                   )}
                 </div>
               )}
@@ -168,10 +206,11 @@ function Auth() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    disabled={isLoading}
                     placeholder="you@example.com"
                     className={`w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 ${
                       errors.email ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
-                    }`}
+                    } ${isLoading ? "bg-gray-50 cursor-not-allowed" : ""}`}
                   />
                 </div>
                 {errors.email && (
@@ -192,10 +231,11 @@ function Auth() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
+                      disabled={isLoading}
                       placeholder="+1 (234) 567-8900"
                       className={`w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 ${
                         errors.phone ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
-                      }`}
+                      } ${isLoading ? "bg-gray-50 cursor-not-allowed" : ""}`}
                     />
                   </div>
                   {errors.phone && (
@@ -216,15 +256,17 @@ function Auth() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    disabled={isLoading}
                     placeholder="••••••••"
                     className={`w-full pl-10 sm:pl-11 pr-12 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 ${
                       errors.password ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
-                    }`}
+                    } ${isLoading ? "bg-gray-50 cursor-not-allowed" : ""}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    disabled={isLoading}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors disabled:cursor-not-allowed"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -244,7 +286,8 @@ function Auth() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      disabled={isLoading}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-600">Remember me</span>
                   </label>
@@ -262,7 +305,8 @@ function Auth() {
                 <div className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 mt-0.5"
+                    disabled={isLoading}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 mt-0.5 disabled:cursor-not-allowed"
                     required={!isSignIn}
                   />
                   <span className="text-gray-600">
@@ -281,10 +325,20 @@ function Auth() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-[0.98]"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
-                {isSignIn ? "Sign In" : "Create Account"}
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isSignIn ? "Sign In" : "Create Account"}</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </>
+                )}
               </button>
             </form>
 
@@ -302,7 +356,9 @@ function Auth() {
             <div className="grid grid-cols-2 gap-3">
               <button 
                 type="button"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium text-gray-700 text-sm sm:text-base"
+                onClick={() => handleSocialLogin('Google')}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium text-gray-700 text-sm sm:text-base disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -314,7 +370,9 @@ function Auth() {
               </button>
               <button 
                 type="button"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium text-gray-700 text-sm sm:text-base"
+                onClick={() => handleSocialLogin('Facebook')}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium text-gray-700 text-sm sm:text-base disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="#1877F2" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -329,7 +387,8 @@ function Auth() {
               <button
                 type="button"
                 onClick={switchMode}
-                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline"
+                disabled={isLoading}
+                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSignIn ? "Sign Up" : "Sign In"}
               </button>
@@ -340,7 +399,7 @@ function Auth() {
           <div className="hidden lg:flex relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 overflow-hidden">
             {/* Background Image */}
             <img
-              src={Wavy}
+              src={wavy}
               alt="Dental Clinic Background"
               className="absolute inset-0 w-full h-full object-cover opacity-30"
             />
