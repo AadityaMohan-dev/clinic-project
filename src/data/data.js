@@ -9,6 +9,14 @@ export const sampleAppointments = [
   },
   {
     id: 2,
+    patientName: "Prince william",
+    date: "2026-01-24",
+    time: "10:30 AM",
+    status: "active",
+    notes: "Follow-up visit",
+  },
+  {
+    id: 3,
     patientName: "Jane Smith",
     date: "2026-01-20",
     time: "2:00 PM",
@@ -16,7 +24,7 @@ export const sampleAppointments = [
     notes: "Annual checkup",
   },
   {
-    id: 3,
+    id: 4,
     patientName: "Alex Johnson",
     date: "2026-01-26",
     time: "1:15 PM",
