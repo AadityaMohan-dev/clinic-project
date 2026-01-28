@@ -62,12 +62,12 @@ function AppointmentDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-transparent font-sans p-4 sm:p-6 lg:p-8">
       
       <div className="max-w-7xl mx-auto">
         
         {/* --- THE MAIN UNIFIED CARD --- */}
-        <div className="bg-white rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden flex flex-col min-h-[800px]">
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden flex flex-col min-h-[800px]">
           
           {/* 1. CARD HEADER (Integrated Navigation) */}
           <div className="px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white">
