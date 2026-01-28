@@ -5,54 +5,51 @@ import TestimonialsSection from './components/ui/testimonial-v2';
 import Hero from './components/sections/hero';
 import { AuroraBackground } from './components/ui/aurora-background'; 
 import Auth from './auth/Auth';
-import Header from './navbar/Header';
-import Footer from './navbar/Footer';
 import AppointmentDashboard from './components/AppointmentDashboard';
 import PatientsDetails from './components/PatientsDetails';
 import PatientDashboard from './components/PatientDashboard'
+import Layout_background from "./components/Layout_background";
 
-// Layout Component using Outlet
-function Layout() {
+/**
+ * 1. THE LAYOUT WRAPPER
+ * This connects your background logic to the Router's Outlet.
+ */
+function AppLayout() {
   return (
-    <>
-      
-      <Header/>
-      <main className="min-h-screen">
-        <Outlet />
-      </main>
-      {/* <Footer /> */}
-    </>
+    <Layout_background>
+      <Outlet />
+    </Layout_background>
   );
 }
 
+/**
+ * 2. THE HOME COMPONENT
+ * Defined here so the Router can find it.
+ */
 function Home() {
   return (
-
     <>
-    <AuroraBackground>
-      <div className="bg-transparent">
-        <Hero />
-      </div>
-      <div className="bg-transparent ">
-         <TestimonialsSection />
-      </div>
-      <div className="bg-transparent pb-10">
+      <AuroraBackground>
+        <div className="bg-transparent">
+          <Hero />
+        </div>
+        <div className="bg-transparent">
+          <TestimonialsSection />
+        </div>
+        <div className="bg-transparent pb-10">
           <MapSection />
-      </div>
-    </AuroraBackground>
-
-    {/* 2. Add About Section Here */}
+        </div>
+      </AuroraBackground>
       <div className="bg-transparent">
         <AboutUsSection />
       </div>
-
     </>
   );
-
 }
 
-
-// 404 Page
+/**
+ * 3. THE 404 COMPONENT
+ */
 function NotFoundPage() {
   return (
     <div className="flex items-center justify-center py-20">
@@ -67,24 +64,26 @@ function NotFoundPage() {
   );
 }
 
-// Main App
+/**
+ * 4. THE MAIN APP COMPONENT
+ */
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Routes with Layout */}
-        <Route element={<Layout />}>
+        {/* All routes inside AppLayout share the background and header */}
+        <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Auth />} />
-        <Route path="/about" element={<><Header/> <AboutUsSection /></>} />
-        <Route path="/services" element={<><Header/> <AboutUsSection /></>} />
-        <Route path="/contact" element={<><Header/> <MapSection /></>} />
-        <Route path="/patients/:id" element={<PatientsDetails/>} />
-        <Route path="/dashboard" element={<AppointmentDashboard />} />
+          <Route path="/about" element={<AboutUsSection />} />
+          <Route path="/services" element={<AboutUsSection />} />
+          <Route path="/contact" element={<MapSection />} />
+          <Route path="/patients/:id" element={<PatientsDetails />} />
+          <Route path="/dashboard" element={<AppointmentDashboard />} />
+          <Route path="/patientdashboard" element={<PatientDashboard />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         
-        {/* Auth Route (No Layout) */}
+        {/* Auth Route - No Layout (No Header/Global Background) */}
         <Route path="/login" element={<Auth />} />
       </Routes>
     </Router>
