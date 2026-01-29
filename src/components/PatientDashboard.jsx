@@ -233,93 +233,130 @@ function PatientDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans pb-10">
-      
-      {/* --- HEADER --- */}
-      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-neutral-200/60 shadow-sm px-6 py-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="h-[calc(100dvh-120px)] w-full flex flex-col items-center justify-start bg-transparent font-sans px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <div className="max-w-7xl w-full h-full flex flex-col">
+        
+        {/* --- THE MAIN UNIFIED ANCHORED CARD --- */}
+        <div className="bg-white rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden flex flex-col h-full">
           
-          {/* Patient Info Block */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-neutral-600 w-full group">
-            
-            <div className="flex items-baseline gap-2">
-              <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{patient.name}</h1>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-md">ID: #{patient.id}</span>
+          {/* Header Section: Patient Profile */}
+          <div className="px-8 py-6 border-b border-gray-100 bg-white shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-3">
+                    <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{patient.name}</h1>
+                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md border border-blue-100 uppercase">ID: #{patient.id}</span>
+                    <button onClick={() => setIsEditProfileOpen(true)} className="p-1 text-neutral-400 hover:text-blue-600 transition-colors">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  
+                  {/* Unified Meta Info Row */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500 mt-1 font-medium">
+                    <span className="flex items-center gap-1.5">{patient.age} yrs, {patient.gender}</span>
+                    <span className="text-neutral-300">|</span>
+                    <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-neutral-400" /> {patient.phone}</span>
+                    <span className="text-neutral-300">|</span>
+                    <span className="flex items-center gap-1.5 text-red-600 font-bold"><Droplet className="w-3.5 h-3.5" /> Blood: {patient.bloodType}</span>
+                    <span className="text-neutral-300">|</span>
+                    <span className="flex items-center gap-1.5 max-w-[250px] truncate"><MapPin className="w-3.5 h-3.5 text-neutral-400" /> {patient.address}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button className="p-2.5 border border-neutral-200 rounded-xl hover:bg-gray-50 text-neutral-500 transition-all"><Printer className="w-5 h-5" /></button>
+                <button className="p-2.5 border border-neutral-200 rounded-xl hover:bg-gray-50 text-neutral-500 transition-all"><Download className="w-5 h-5" /></button>
+              </div>
             </div>
-
-            <span className="hidden md:block text-neutral-300">|</span>
-
-            <div className="flex flex-wrap items-center gap-6">
-              <span className="flex items-center gap-1.5 font-medium">{patient.age} yrs, {patient.gender}</span>
-              <span className="hidden md:block text-neutral-300">|</span>
-              <span className="flex items-center gap-1.5 font-medium"><Phone className="w-3.5 h-3.5 text-neutral-400" /> {patient.phone}</span>
-              <span className="hidden md:block text-neutral-300">|</span>
-              <span className="flex items-center gap-1.5 font-medium"><Droplet className="w-3.5 h-3.5 text-red-500 fill-red-500/20" /> Blood: <span className="text-neutral-900 font-bold">{patient.bloodType}</span></span>
-              <span className="hidden md:block text-neutral-300">|</span>
-              <span className="flex items-center gap-1.5 font-medium truncate max-w-[200px]" title={patient.address}><MapPin className="w-3.5 h-3.5 text-neutral-400" /> {patient.address}</span>
-            </div>
-
-            <button onClick={() => setIsEditProfileOpen(true)} className="ml-auto md:ml-0 p-1.5 rounded-full bg-gray-50 hover:bg-blue-100 text-neutral-400 hover:text-blue-600 transition-colors" title="Edit Profile">
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
           </div>
 
-          <div className="flex gap-2 shrink-0">
-            <button className="p-2 border border-neutral-200 bg-white rounded-lg hover:bg-gray-50 text-neutral-600 shadow-sm"><Printer className="w-4 h-4" /></button>
-            <button className="p-2 border border-neutral-200 bg-white rounded-lg hover:bg-gray-50 text-neutral-600 shadow-sm"><Download className="w-4 h-4" /></button>
-          </div>
-        </div>
-      </div>
-
-      {/* --- CONTENT --- */}
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden min-h-[600px] flex flex-col">
-          
-          <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-              <History className="w-6 h-6 text-blue-600" /> Appointment History
+          {/* Toolbar Section: Search and Title */}
+          <div className="px-8 py-4 bg-gray-50/50 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+            <h2 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
+              <History className="w-5 h-5 text-blue-600" /> Appointment Records
             </h2>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-neutral-400" />
-              <input type="text" placeholder="Search history..." className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <input
+                type="text"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none shadow-sm transition-all"
+                placeholder="Search by doctor or date..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="flex-1 p-6 bg-[#FAFAFA] overflow-y-auto">
-            <div className="space-y-4">
-              <AnimatePresence>
+          {/* Scrollable Content Area: Appointment History */}
+          <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#FAFAFA] custom-scrollbar">
+            <div className="grid grid-cols-1 gap-4">
+              <AnimatePresence mode="popLayout">
                 {filteredVisits.length > 0 ? (
                   filteredVisits.map((visit) => (
-                    <motion.button key={visit.id} layout whileHover={{ scale: 1.01 }} onClick={() => setSelectedVisit(visit)} className="w-full text-left bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm flex items-center justify-between group hover:border-blue-400 hover:shadow-md transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className="hidden sm:flex flex-col items-center justify-center w-14 h-14 bg-blue-50 text-blue-700 rounded-xl font-bold border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                          <span className="text-xs uppercase">{new Date(visit.date).toLocaleString('default', { month: 'short' })}</span>
-                          <span className="text-lg">{new Date(visit.date).getDate()}</span>
+                    <motion.button
+                      key={visit.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      onClick={() => setSelectedVisit(visit)}
+                      className="group bg-white rounded-2xl p-5 border border-neutral-200 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 text-left flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="flex items-center gap-6">
+                        {/* Date Icon */}
+                        <div className="w-14 h-14 bg-blue-50 rounded-2xl flex flex-col items-center justify-center text-blue-700 shrink-0 border border-blue-100/50 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                          <span className="text-[10px] font-bold uppercase">{new Date(visit.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                          <span className="text-lg font-bold">{new Date(visit.date).getDate()}</span>
                         </div>
+                        
                         <div>
-                          <h3 className="font-bold text-neutral-900 text-lg mb-1">{visit.title}</h3>
-                          <div className="flex items-center gap-3 text-sm text-neutral-500">
-                            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {visit.doctor}</span>
-                            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {visit.time}</span>
-                            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600 border border-gray-200">{visit.medications.length} Meds</span>
+                          <h3 className="text-lg font-bold text-neutral-900 group-hover:text-blue-600 transition-colors">{visit.title}</h3>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-neutral-500">
+                            <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Dr. {visit.doctor}</span>
+                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {visit.time}</span>
+                            <span className="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-bold text-gray-600 uppercase">{visit.medications.length} Medicines</span>
                           </div>
                         </div>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors"><ChevronRight className="w-5 h-5" /></div>
+                      
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-neutral-300 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                        <ChevronRight className="w-5 h-5" />
+                      </div>
                     </motion.button>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-neutral-400"><Activity className="w-12 h-12 mb-3 opacity-20" /><p>No records found.</p></div>
+                  <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
+                    <Activity className="w-12 h-12 mb-4 opacity-20" />
+                    <p className="font-medium">No appointment history found</p>
+                  </div>
                 )}
               </AnimatePresence>
             </div>
           </div>
-          <div className="p-4 border-t border-gray-100 bg-white text-center"><p className="text-xs text-neutral-400">Total Visits: {VISITS_HISTORY.length}</p></div>
+
+          {/* Footer Section */}
+          <div className="px-8 py-4 border-t border-gray-100 bg-white shrink-0">
+            <p className="text-center text-[11px] text-gray-400 font-medium tracking-wide">
+              Total Recorded Visits: <span className="text-neutral-900 font-bold">{VISITS_HISTORY.length}</span>
+            </p>
+          </div>
         </div>
       </div>
 
+      {/* Modals */}
       <AppointmentDetailsModal visit={selectedVisit} isOpen={!!selectedVisit} onClose={() => setSelectedVisit(null)} />
       <EditPatientModal patient={patient} isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} onSave={setPatient} />
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+      `}</style>
     </div>
   );
 }
