@@ -24,7 +24,6 @@ function Home() {
       <div className="bg-transparent"><Hero /></div>
       <div className="bg-transparent"><TestimonialsSection /></div>
       <div className="bg-transparent pb-10"><MapSection /></div>
-      <div className="bg-transparent"><AboutUsSection /></div>
     </AuroraBackground>
   );
 }
@@ -34,6 +33,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+
         
         <Route 
           path="/login" 
@@ -43,6 +43,7 @@ export default function App() {
             </Layout_background>
           } 
         />
+        
 
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<AppointmentDashboard />} />
