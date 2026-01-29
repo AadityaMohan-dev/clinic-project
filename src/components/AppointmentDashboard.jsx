@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, Clock, User, FileText, X, Filter, Plus, ChevronRight } from "lucide-react";
+import { Search, Calendar, Clock, User, FileText, X, Filter, Plus, ChevronRight, Stethoscope, Clipboard } from "lucide-react";
 import { sampleAppointments as appointments } from "../data/data";
 import AddAppointment from "./modal/AddAppointment";
 import { Link } from "react-router-dom";
@@ -31,105 +31,156 @@ function AppointmentDashboard() {
 
   const handleAddAppointment = (appointmentData) => {
     console.log('New appointment:', appointmentData);
+    setIsAddModalOpen(false); // Close modal after submission
   };
 
   return (
-    <div className="h-[calc(100dvh-120px)] w-full flex flex-col items-center justify-start bg-transparent font-sans px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div className="h-[calc(100dvh-120px)] w-full flex flex-col items-center justify-start bg-transparent font-sans px-4 sm:px-6 lg:px-8 py-2 overflow-hidden">
       <div className="max-w-7xl w-full h-full flex flex-col">
         
-        {/* --- THE MAIN UNIFIED CARD --- */}
-        <div className="bg-white rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden flex flex-col h-full">
+        {/* --- THE ANCHORED MAIN CARD --- */}
+        <div className="bg-white rounded-[2.5rem] md:rounded-3xl shadow-xl border border-neutral-200/60 overflow-hidden flex flex-col h-full">
           
-          {/* Header Section */}
-          <div className="px-8 py-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white shrink-0">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Dashboard</h1>
-              <p className="text-sm text-neutral-500 font-medium">Manage your schedule and patients</p>
-            </div>
+          {/* HEADER: ANCHORED (Does not scroll) */}
+          <div className="px-6 md:px-8 pt-8 pb-4 shrink-0 bg-white">
             
-            <div className="flex items-center gap-3 pr-4 md:pr-0">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-                <Filter className="w-4 h-4" /> <span>Filter</span>
-              </button>
-              <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-xl shadow-lg active:scale-95 group transition-all">
-                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="font-semibold text-sm whitespace-nowrap">New Appointment</span>
-              </button>
+            {/* MOBILE HEADER: Stitch AI Style */}
+            <div className="md:hidden">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-500 to-red-600 shadow-sm" />
+                <span className="font-bold text-sm tracking-tight text-black">O Dental Clinic</span>
+              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-black mb-4">Clinic Dashboard</h1>
+              <div className="relative w-full mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input 
+                  className="block w-full pl-12 pr-4 py-3.5 bg-gray-100/60 border-none rounded-2xl text-lg outline-none" 
+                  placeholder="Search patients..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Toolbar Section */}
-          <div className="px-8 pt-4 pb-8 bg-gray-50/50 border-b border-gray-100 flex flex-col lg:flex-row gap-4 items-center justify-between shrink-0">
-            <div className="flex p-1 bg-white border border-gray-200 rounded-xl overflow-x-auto scrollbar-hide shadow-sm">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${statusFilter === tab.key ? "bg-neutral-900 text-white shadow-md" : "text-neutral-500 hover:text-neutral-900 hover:bg-gray-50"}`}
-                >
-                  <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${statusFilter === tab.key ? "bg-neutral-700 border-neutral-600" : "bg-gray-100 border-gray-200"}`}>{tab.count}</span>
+            {/* DESKTOP HEADER: Initial Dashboard Style */}
+            <div className="hidden md:flex flex-row items-center justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Dashboard</h1>
+                <p className="text-sm text-neutral-500 font-medium">Manage your schedule and patients</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 text-neutral-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer">
+                  <Filter className="w-4 h-4" /> <span>Filter</span>
                 </button>
-              ))}
+                {/* FIXED: Added onClick to Desktop button */}
+                <button 
+                  onClick={() => setIsAddModalOpen(true)} 
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white rounded-xl shadow-lg active:scale-95 group transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                  <span className="font-semibold text-sm">New Appointment</span>
+                </button>
+              </div>
             </div>
-            <div className="relative w-full lg:w-80 group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 group-focus-within:text-blue-600 transition-colors" />
-              <input
-                type="text"
-                className="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
 
-          {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#FAFAFA] custom-scrollbar">
-            <div className="grid grid-cols-1 gap-4">
-              {filteredAppointments.map((appt) => (
-                <div key={appt.id} className="group bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 transition-all duration-300">
-                   <div className="flex flex-col md:flex-row gap-6 items-center">
-                    <div className="w-16 h-16 bg-blue-50/50 rounded-2xl flex flex-col items-center justify-center text-blue-700 shrink-0 border border-blue-100/50">
-                        <span className="text-xs font-bold uppercase">{new Date(appt.date).toLocaleDateString("en-US", { month: "short" })}</span>
-                        <span className="text-xl font-bold">{new Date(appt.date).toLocaleDateString("en-US", { day: "numeric" })}</span>
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                           <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{appt.patientName}</h3>
-                           <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-100">Active</span>
-                        </div>
-                        <div className="flex gap-4 mt-1 text-sm text-gray-500">
-                           <span className="flex items-center gap-1"><User className="w-3.5 h-3.5"/> Dr. {appt.doctorName}</span>
-                           <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {appt.time}</span>
-                        </div>
-                        <div className="mt-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-2 text-sm text-gray-600">
-                           <FileText className="w-4 h-4 text-gray-400 shrink-0"/> {appt.notes || "Follow-up visit"}
-                        </div>
-                    </div>
-                    <div className="flex shrink-0 w-full md:w-auto mt-4 md:mt-0">
-                        <Link 
-                          to={`/patients/${appt.id}`} 
-                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-neutral-900 text-white rounded-lg text-sm font-medium shadow-md active:scale-95 group/btn transition-all"
-                        >
-                          Edit Details <ChevronRight className="w-4 h-4 text-gray-400 group-hover/btn:translate-x-0.5 transition-transform" />
-                        </Link>
-                    </div>
+            {/* TABS: Responsive & Anchored */}
+            <nav className="mb-6">
+              <div className="flex items-center bg-gray-50 p-1.5 rounded-2xl md:w-fit border border-gray-100 shadow-sm">
+                {tabs.map((tab, idx) => (
+                  <div key={tab.key} className="flex-1 md:flex-none flex items-center">
+                    <button
+                      onClick={() => setStatusFilter(tab.key)}
+                      className={`flex-1 md:px-8 py-2.5 px-1 flex items-center justify-center gap-2 rounded-xl transition-all cursor-pointer ${
+                        statusFilter === tab.key 
+                        ? "bg-black text-white shadow-md" 
+                        : "text-gray-500 hover:bg-white/40"
+                      }`}
+                    >
+                      <span className="font-semibold text-[13px] md:text-sm">{tab.label}</span>
+                      <span className={`text-[10px] min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full font-bold leading-none ${
+                        statusFilter === tab.key ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-600"
+                      }`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                    {idx < tabs.length - 1 && <div className="w-px h-6 bg-gray-200 mx-1" />}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </nav>
+
+            {/* MOBILE ONLY: Appointments Section Title + Fixed New Button */}
+            <div className="flex md:hidden justify-between items-center mb-2">
+              <h2 className="text-2xl font-bold text-black">Appointments</h2>
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-black text-white text-[11px] font-bold py-2 px-4 rounded-full flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> New appointment
+              </button>
             </div>
           </div>
 
-          {/* Footer: Fixed */}
-          <div className="px-8 py-4 border-t border-gray-100 bg-white shrink-0">
-             <p className="text-center text-[10px] sm:text-xs text-gray-400 font-medium tracking-wide">
-               Showing <span className="text-gray-900 font-bold">{filteredAppointments.length}</span> of <span className="text-gray-900 font-bold">{appointments.length}</span> appointments
+          {/* SCROLLABLE AREA: Patient Cards */}
+          <div className="flex-1 overflow-y-auto px-6 md:px-8 pb-8 custom-scrollbar bg-[#FAFAFA]/50">
+            <div className="grid grid-cols-1 gap-4 pt-2">
+              {filteredAppointments.length > 0 ? (
+                filteredAppointments.map((appt) => (
+                  <Link 
+                    key={appt.id} 
+                    to={`/patients/${appt.id}`}
+                    className="bg-white p-4 md:p-5 rounded-[2rem] md:rounded-2xl shadow-sm border border-neutral-100 flex flex-row items-center gap-4 md:gap-8 hover:border-blue-300 transition-all group cursor-pointer"
+                  >
+                    {/* Date Box: Mockup Style */}
+                    <div className="bg-gray-100 rounded-2xl w-16 h-16 flex flex-col items-center justify-center flex-shrink-0 group-hover:bg-black group-hover:text-white transition-colors">
+                      <span className="text-[10px] font-bold uppercase opacity-60">
+                        {new Date(appt.date).toLocaleDateString("en-US", { month: "short" })}
+                      </span>
+                      <span className="text-xl font-black leading-none">
+                        {new Date(appt.date).getDate()}
+                      </span>
+                    </div>
+
+                    {/* Content Logic: Stacks on mobile, Rows on desktop */}
+                    <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-10">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-black group-hover:text-blue-600 transition-colors">{appt.patientName}</h3>
+                          <User className="w-3.5 h-3.5 text-black md:hidden" />
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1.5"><Stethoscope className="w-3.5 h-3.5" /> Dr. {appt.doctorName}</span>
+                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {appt.time}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-gray-400 truncate max-w-[200px] md:max-w-[400px]">
+                        <span className="flex items-center gap-1.5"><Clipboard className="w-3.5 h-3.5 md:hidden" /> {appt.notes || "Follow-up visit"}</span>
+                      </div>
+                    </div>
+
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-black transition-colors" />
+                  </Link>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
+                  <Calendar className="w-12 h-12 mb-4 opacity-10" />
+                  <p className="font-medium">No appointments found</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* DESKTOP FOOTER: Anchored */}
+          <div className="hidden md:block px-8 py-4 border-t border-gray-100 bg-white shrink-0">
+             <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+               O Dental Clinic • {filteredAppointments.length} Active Records
              </p>
           </div>
         </div>
       </div>
 
+      {/* MODAL TRIGGER */}
       {isAddModalOpen && (
         <AddAppointment
           onClose={() => setIsAddModalOpen(false)}
@@ -138,12 +189,9 @@ function AppointmentDashboard() {
       )}
 
       <style>{`
-        html, body { overflow: hidden !important; height: 100dvh; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
       `}</style>
     </div>
   );
