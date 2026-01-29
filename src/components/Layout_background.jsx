@@ -1,19 +1,26 @@
 import React from "react";
-import Header from "../navbar/Header";
-import { BackgroundGradient } from "./ui/bg-gradient";
+import Header from "../navbar/Header"; 
 
-export default function Layout_background({ children }) {
+function Layout_background({ children, showNavbar = true }) {
   return (
-    // Ensure the root container is relative and has no background color
-    <div className="relative min-h-screen bg-transparent">
-      {/* Increased Z-Index to -10 to ensure it's just behind content */}
-      <BackgroundGradient className="opacity-100 visible" /> 
+    <div className="relative min-h-screen w-full flex flex-col">
+      {/* THE PINNED GRADIENT LAYER */}
+      <div 
+        className="fixed inset-0 w-full h-full pointer-events-none"
+        style={{
+          zIndex: -1,
+          background: `radial-gradient(100% 100% at top center, #ffffff 0%, #bfdbfe 100%)`,
+          backgroundAttachment: 'fixed'
+        }}
+      />
       
-      <Header />
+      {showNavbar && <Header />}
       
-      <main className="relative z-10 w-full">
+      <main className="relative flex-1 w-full z-10">
         {children}
       </main>
     </div>
   );
 }
+
+export default Layout_background;
