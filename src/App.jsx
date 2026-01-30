@@ -47,6 +47,9 @@ export default function App() {
 
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<AppointmentDashboard />} />
+          <Route path="/about" element={<AboutUsSection />} />
+          <Route path="/services" element={<AboutUsSection />} />
+          <Route path="/contact" element={<MapSection />} />
           <Route path="/patients/:id" element={<PatientsDetails />} />
           <Route path="/patientdashboard" element={<PatientDashboard />} />
         </Route>
