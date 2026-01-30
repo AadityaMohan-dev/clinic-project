@@ -11,18 +11,14 @@ const Auth = () => {
   
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Navigates to the dashboard upon successful "login"
     navigate("/dashboard");
   };
 
   return (
-    /* CRITICAL: bg-transparent allows the Layout_background 
-       gradient to be visible behind the login card. 
-    */
     <div className="h-screen w-full flex items-center justify-center bg-transparent font-sans p-4 overflow-hidden">
       
-      {/* Main Login Card */}
-      <div className="relative w-full max-w-[850px] h-[520px] bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex">
+      {/* Main Login Card - Adjusted height for mobile */}
+      <div className="relative w-full max-w-[850px] h-[580px] md:h-[520px] bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex">
         
         {/* Sliding Blue Panel (Desktop Only) */}
         <motion.div
@@ -53,7 +49,7 @@ const Auth = () => {
         <div className="relative w-full flex h-full">
           
           {/* --- SIGN IN FORM --- */}
-          <div className={`absolute left-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${!isSignIn ? "opacity-0 invisible" : "opacity-100 visible"}`}>
+          <div className={`absolute left-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${!isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Sign In</h2>
             <div className="flex gap-4 mb-8">
               <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
@@ -69,10 +65,18 @@ const Auth = () => {
                 SIGN IN
               </button>
             </form>
+
+            {/* Mobile-only toggle link */}
+            <p className="mt-8 text-sm text-gray-500 md:hidden">
+              Don't have an account?{" "}
+              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
+                Sign Up
+              </button>
+            </p>
           </div>
 
           {/* --- SIGN UP FORM --- */}
-          <div className={`absolute right-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${isSignIn ? "opacity-0 invisible" : "opacity-100 visible"}`}>
+          <div className={`absolute right-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Create Account</h2>
             <div className="flex gap-4 mb-8">
               <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
@@ -89,6 +93,14 @@ const Auth = () => {
                 SIGN UP
               </button>
             </form>
+
+            {/* Mobile-only toggle link */}
+            <p className="mt-8 text-sm text-gray-500 md:hidden">
+              Already have an account?{" "}
+              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
+                Sign In
+              </button>
+            </p>
           </div>
 
         </div>
@@ -97,7 +109,7 @@ const Auth = () => {
   );
 };
 
-// --- SUB-COMPONENTS ---
+// --- SUB-COMPONENTS (Same as original) ---
 
 const SocialButton = ({ icon }) => (
   <button className="p-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer active:scale-90">

@@ -26,7 +26,7 @@ function AppointmentDashboard() {
   const tabs = [
     { key: "active", label: "Active", count: appointments.filter((a) => a.status === "active").length },
     { key: "completed", label: "Completed", count: appointments.filter((a) => a.status === "completed").length },
-    { key: "pending", label: "Pending", count: appointments.filter((a) => a.status === "pending").length },
+    { key: "Teleconsultation", label: "Teleconsultation", count: appointments.filter((a) => a.status === "Teleconsultation").length },
   ];
 
   const handleAddAppointment = (appointmentData) => {
@@ -92,7 +92,7 @@ function AppointmentDashboard() {
                         : "text-gray-500 hover:bg-white/40"
                       }`}
                     >
-                      <span className="font-semibold text-[12px] md:text-sm">{tab.label}</span>
+                      <span className="font-semibold text-[11px] md:text-sm">{tab.label}</span>
                       <span className={`text-[10px] min-w-[18px] h-4.5 px-1 flex items-center justify-center rounded-full font-bold leading-none ${
                         statusFilter === tab.key ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-600"
                       }`}>
