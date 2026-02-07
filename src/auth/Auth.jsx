@@ -1,26 +1,106 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Chrome, Facebook, Mail, Lock, User } from "lucide-react";
+import { Chrome, Facebook, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Auth = () => {
   const [isSignIn, setIsSignIn] = useState(true);
   const navigate = useNavigate();
 
-  const toggleView = () => setIsSignIn(!isSignIn);
-  
-  const handleSubmit = (e) => {
+  // State for form data
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phoneNumber: ""
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const toggleView = () => {
+    setIsSignIn(!isSignIn);
+    setError(""); // Clear errors when switching
+    setFormData({ name: "", email: "", password: "", phoneNumber: "" }); // Clear form
+  };
+
+  // Handle Input Changes
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // --- LOGIN LOGIC ---
+  const handleLogin = async (e) => {
     e.preventDefault();
-    navigate("/dashboard");
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save Token
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("userId", data.user_id);
+        navigate("/dashboard");
+      } else {
+        setError("Invalid credentials. Please try again.");
+      }
+    } catch (err) {
+      setError("Server error. Is the backend running?");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- SIGNUP LOGIC ---
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/auth/signup/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber
+        }),
+      });
+
+      if (response.status === 201) {
+        alert("Account created! Please sign in.");
+        toggleView(); // Switch to login view
+      } else {
+        const data = await response.json();
+        setError(data.message || "Signup failed. Email might exist.");
+      }
+    } catch (err) {
+      setError("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-transparent font-sans p-4 overflow-hidden">
+    <div className="h-screen w-full flex items-center justify-center bg-gray-100 font-sans p-4 overflow-hidden">
       
-      {/* Main Login Card - Adjusted height for mobile */}
-      <div className="relative w-full max-w-[850px] h-[580px] md:h-[520px] bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex">
+      <div className="relative w-full max-w-[850px] h-[600px] md:h-[550px] bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex">
         
-        {/* Sliding Blue Panel (Desktop Only) */}
+        {/* Sliding Blue Panel */}
         <motion.div
           animate={{ x: isSignIn ? "100%" : "0%" }}
           transition={{ type: "spring", stiffness: 70, damping: 18 }}
@@ -51,22 +131,42 @@ const Auth = () => {
           {/* --- SIGN IN FORM --- */}
           <div className={`absolute left-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${!isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Sign In</h2>
-            <div className="flex gap-4 mb-8">
+            <div className="flex gap-4 mb-6">
               <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
               <SocialButton icon={<Facebook className="w-5 h-5 text-blue-600" />} />
             </div>
-            <form className="w-full max-w-xs space-y-4" onSubmit={handleSubmit}>
-              <InputGroup icon={<Mail className="w-4 h-4" />} type="email" placeholder="Email" required />
-              <InputGroup icon={<Lock className="w-4 h-4" />} type="password" placeholder="Password" required />
+            
+            <form className="w-full max-w-xs space-y-4" onSubmit={handleLogin}>
+              <InputGroup 
+                icon={<Mail className="w-4 h-4" />} 
+                name="email"
+                type="email" 
+                placeholder="Email" 
+                value={formData.email}
+                onChange={handleChange}
+                required 
+              />
+              <InputGroup 
+                icon={<Lock className="w-4 h-4" />} 
+                name="password"
+                type="password" 
+                placeholder="Password" 
+                value={formData.password}
+                onChange={handleChange}
+                required 
+              />
+              
+              {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+
               <button 
                 type="submit" 
-                className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95"
+                disabled={loading}
+                className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                SIGN IN
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "SIGN IN"}
               </button>
             </form>
 
-            {/* Mobile-only toggle link */}
             <p className="mt-8 text-sm text-gray-500 md:hidden">
               Don't have an account?{" "}
               <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
@@ -78,23 +178,59 @@ const Auth = () => {
           {/* --- SIGN UP FORM --- */}
           <div className={`absolute right-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Create Account</h2>
-            <div className="flex gap-4 mb-8">
+            <div className="flex gap-4 mb-6">
               <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
               <SocialButton icon={<Facebook className="w-5 h-5 text-blue-600" />} />
             </div>
-            <form className="w-full max-w-xs space-y-4" onSubmit={handleSubmit}>
-              <InputGroup icon={<User className="w-4 h-4" />} type="text" placeholder="Full Name" required />
-              <InputGroup icon={<Mail className="w-4 h-4" />} type="email" placeholder="Email" required />
-              <InputGroup icon={<Lock className="w-4 h-4" />} type="password" placeholder="Password" required />
+            
+            <form className="w-full max-w-xs space-y-3" onSubmit={handleSignup}>
+              <InputGroup 
+                icon={<User className="w-4 h-4" />} 
+                name="name"
+                type="text" 
+                placeholder="Full Name" 
+                value={formData.name}
+                onChange={handleChange}
+                required 
+              />
+              <InputGroup 
+                icon={<Mail className="w-4 h-4" />} 
+                name="email"
+                type="email" 
+                placeholder="Email" 
+                value={formData.email}
+                onChange={handleChange}
+                required 
+              />
+              <InputGroup 
+                icon={<Phone className="w-4 h-4" />} 
+                name="phoneNumber"
+                type="tel" 
+                placeholder="Phone Number" 
+                value={formData.phoneNumber}
+                onChange={handleChange}
+              />
+              <InputGroup 
+                icon={<Lock className="w-4 h-4" />} 
+                name="password"
+                type="password" 
+                placeholder="Password" 
+                value={formData.password}
+                onChange={handleChange}
+                required 
+              />
+
+              {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+
               <button 
                 type="submit" 
-                className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95"
+                disabled={loading}
+                className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                SIGN UP
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "SIGN UP"}
               </button>
             </form>
 
-            {/* Mobile-only toggle link */}
             <p className="mt-8 text-sm text-gray-500 md:hidden">
               Already have an account?{" "}
               <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
@@ -109,10 +245,10 @@ const Auth = () => {
   );
 };
 
-// --- SUB-COMPONENTS (Same as original) ---
+// --- SUB-COMPONENTS ---
 
 const SocialButton = ({ icon }) => (
-  <button className="p-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer active:scale-90">
+  <button type="button" className="p-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer active:scale-90">
     {icon}
   </button>
 );
