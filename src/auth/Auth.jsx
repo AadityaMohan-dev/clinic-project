@@ -1,13 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Chrome, Facebook, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { createClient } from '@supabase/supabase-js';
+
+// 1️⃣ SUPABASE CONFIGURATION
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const Auth = () => {
   const [isSignIn, setIsSignIn] = useState(true);
   const navigate = useNavigate();
 
-  // State for form data
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,78 +23,178 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 2️⃣ CHECK IF USER IS ALREADY LOGGED IN
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+    };
+    checkUser();
+
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const toggleView = () => {
     setIsSignIn(!isSignIn);
-    setError(""); // Clear errors when switching
-    setFormData({ name: "", email: "", password: "", phoneNumber: "" }); // Clear form
+    setError("");
+    setFormData({ name: "", email: "", password: "", phoneNumber: "" });
   };
 
-  // Handle Input Changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- LOGIN LOGIC ---
+  // 3️⃣ SOCIAL LOGIN HANDLERS
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      setError(error.message || "Google sign-in failed");
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      setError(error.message || "Facebook sign-in failed");
+      setLoading(false);
+    }
+  };
+
+  // 4️⃣ LOGIN WITH EMAIL/PASSWORD
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
 
-      const data = await response.json();
+      if (error) throw error;
 
-      if (response.ok) {
-        // Save Token
-        localStorage.setItem("token", data.access_token);
-        localStorage.setItem("userId", data.user_id);
-        navigate("/dashboard");
-      } else {
-        setError("Invalid credentials. Please try again.");
-      }
-    } catch (err) {
-      setError("Server error. Is the backend running?");
-      console.error(err);
+      // Session is automatically handled by Supabase
+      // The onAuthStateChange listener will redirect to dashboard
+      
+    } catch (error) {
+      setError(error.message || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- SIGNUP LOGIC ---
+  // 5️⃣ SIGNUP WITH EMAIL/PASSWORD
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8080/api/v1/auth/signup/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phoneNumber: formData.phoneNumber
-        }),
+      // Sign up the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            phone_number: formData.phoneNumber
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       });
 
-      if (response.status === 201) {
-        alert("Account created! Please sign in.");
-        toggleView(); // Switch to login view
-      } else {
-        const data = await response.json();
-        setError(data.message || "Signup failed. Email might exist.");
+      if (authError) throw authError;
+
+      // If user exists but unconfirmed
+      if (authData?.user?.identities?.length === 0) {
+        setError("An account with this email already exists.");
+        return;
       }
-    } catch (err) {
-      setError("Server error. Please try again later.");
+
+      // Optional: Store additional user data in a custom profiles table
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            full_name: formData.name,
+            email: formData.email,
+            phone_number: formData.phoneNumber,
+            created_at: new Date().toISOString()
+          });
+
+        if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
+          console.error("Profile creation error:", profileError);
+        }
+      }
+
+      // Show success message
+      alert("Account created! Please check your email to verify your account.");
+      toggleView();
+      
+    } catch (error) {
+      if (error.message.includes("User already registered")) {
+        setError("An account with this email already exists.");
+      } else {
+        setError(error.message || "Signup failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6️⃣ FORGOT PASSWORD HANDLER (BONUS)
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError("Please enter your email first");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+      alert("Password reset email sent! Check your inbox.");
+    } catch (error) {
+      setError(error.message || "Failed to send reset email");
     } finally {
       setLoading(false);
     }
@@ -131,36 +236,54 @@ const Auth = () => {
           {/* --- SIGN IN FORM --- */}
           <div className={`absolute left-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${!isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Sign In</h2>
+            
+            {/* Social Login Buttons */}
             <div className="flex gap-4 mb-6">
-              <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
-              <SocialButton icon={<Facebook className="w-5 h-5 text-blue-600" />} />
+              <SocialButton 
+                onClick={handleGoogleLogin} 
+                icon={<Chrome className="w-5 h-5 text-gray-700" />} 
+                disabled={loading}
+              />
+              <SocialButton 
+                onClick={handleFacebookLogin} 
+                icon={<Facebook className="w-5 h-5 text-blue-600" />} 
+                disabled={loading}
+              />
             </div>
             
             <form className="w-full max-w-xs space-y-4" onSubmit={handleLogin}>
               <InputGroup 
                 icon={<Mail className="w-4 h-4" />} 
-                name="email"
+                name="email" 
                 type="email" 
                 placeholder="Email" 
-                value={formData.email}
-                onChange={handleChange}
+                value={formData.email} 
+                onChange={handleChange} 
                 required 
               />
               <InputGroup 
                 icon={<Lock className="w-4 h-4" />} 
-                name="password"
+                name="password" 
                 type="password" 
                 placeholder="Password" 
-                value={formData.password}
-                onChange={handleChange}
+                value={formData.password} 
+                onChange={handleChange} 
                 required 
               />
               
               {error && <p className="text-red-500 text-xs text-center">{error}</p>}
 
               <button 
+                type="button" 
+                onClick={handleForgotPassword}
+                className="w-full text-[#3a5ed4] text-sm underline hover:text-blue-700 transition-all"
+              >
+                Forgot Password?
+              </button>
+
+              <button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading} 
                 className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "SIGN IN"}
@@ -168,8 +291,8 @@ const Auth = () => {
             </form>
 
             <p className="mt-8 text-sm text-gray-500 md:hidden">
-              Don't have an account?{" "}
-              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
+              Don't have an account? 
+              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline ml-1">
                 Sign Up
               </button>
             </p>
@@ -178,45 +301,56 @@ const Auth = () => {
           {/* --- SIGN UP FORM --- */}
           <div className={`absolute right-0 w-full md:w-1/2 h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${isSignIn ? "opacity-0 invisible pointer-events-none" : "opacity-100 visible"}`}>
             <h2 className="text-3xl font-bold text-[#3a5ed4] mb-2">Create Account</h2>
+            
+            {/* Social Login Buttons */}
             <div className="flex gap-4 mb-6">
-              <SocialButton icon={<Chrome className="w-5 h-5 text-gray-700" />} />
-              <SocialButton icon={<Facebook className="w-5 h-5 text-blue-600" />} />
+              <SocialButton 
+                onClick={handleGoogleLogin} 
+                icon={<Chrome className="w-5 h-5 text-gray-700" />} 
+                disabled={loading}
+              />
+              <SocialButton 
+                onClick={handleFacebookLogin} 
+                icon={<Facebook className="w-5 h-5 text-blue-600" />} 
+                disabled={loading}
+              />
             </div>
             
             <form className="w-full max-w-xs space-y-3" onSubmit={handleSignup}>
               <InputGroup 
                 icon={<User className="w-4 h-4" />} 
-                name="name"
+                name="name" 
                 type="text" 
                 placeholder="Full Name" 
-                value={formData.name}
-                onChange={handleChange}
+                value={formData.name} 
+                onChange={handleChange} 
                 required 
               />
               <InputGroup 
                 icon={<Mail className="w-4 h-4" />} 
-                name="email"
+                name="email" 
                 type="email" 
                 placeholder="Email" 
-                value={formData.email}
-                onChange={handleChange}
+                value={formData.email} 
+                onChange={handleChange} 
                 required 
               />
               <InputGroup 
                 icon={<Phone className="w-4 h-4" />} 
-                name="phoneNumber"
+                name="phoneNumber" 
                 type="tel" 
                 placeholder="Phone Number" 
-                value={formData.phoneNumber}
-                onChange={handleChange}
+                value={formData.phoneNumber} 
+                onChange={handleChange} 
               />
               <InputGroup 
                 icon={<Lock className="w-4 h-4" />} 
-                name="password"
+                name="password" 
                 type="password" 
-                placeholder="Password" 
-                value={formData.password}
-                onChange={handleChange}
+                placeholder="Password (min 6 characters)" 
+                value={formData.password} 
+                onChange={handleChange} 
+                minLength="6"
                 required 
               />
 
@@ -224,7 +358,7 @@ const Auth = () => {
 
               <button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading} 
                 className="w-full bg-[#3a5ed4] text-white py-3.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all cursor-pointer active:scale-95 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "SIGN UP"}
@@ -232,8 +366,8 @@ const Auth = () => {
             </form>
 
             <p className="mt-8 text-sm text-gray-500 md:hidden">
-              Already have an account?{" "}
-              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline">
+              Already have an account? 
+              <button onClick={toggleView} className="text-[#3a5ed4] font-bold underline ml-1">
                 Sign In
               </button>
             </p>
@@ -247,8 +381,13 @@ const Auth = () => {
 
 // --- SUB-COMPONENTS ---
 
-const SocialButton = ({ icon }) => (
-  <button type="button" className="p-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer active:scale-90">
+const SocialButton = ({ icon, onClick, disabled }) => (
+  <button 
+    type="button" 
+    onClick={onClick}
+    disabled={disabled}
+    className="p-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
     {icon}
   </button>
 );

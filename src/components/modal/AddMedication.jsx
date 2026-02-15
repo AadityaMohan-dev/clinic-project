@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
-import { X, Search, Clock, Save, Pill, AlertCircle } from "lucide-react";
+import { X, Search, Clock, Save, Pill, AlertCircle, Loader2 } from "lucide-react";
+import { createClient } from '@supabase/supabase-js';
 
-// Dummy database for autocomplete
-const MEDICATION_DB = [
-  "Amoxicillin", "Paracetamol", "Ibuprofen", "Metformin", 
-  "Atorvastatin", "Omeprazole", "Azithromycin", "Pantoprazole", 
-  "Losartan", "Cetirizine", "Aspirin", "Clopidogrel"
-];
+// Initialize Supabase client
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function AddMedication({ isOpen, onClose, onSave }) {
+export default function AddMedication({ isOpen, onClose, onSave, patientId }) {
   const [formData, setFormData] = useState({
     name: "",
     dosage: "",
-    timingFood: "after", // default
+    timingFood: "after",
     timingMeal: { breakfast: false, lunch: false, dinner: false },
     duration: "5",
     comments: ""
@@ -20,6 +19,17 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
 
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [medicationDB, setMedicationDB] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMeds, setLoadingMeds] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  // Fetch current user and medications on mount
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchMedications();
+  }, []);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -32,8 +42,78 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
         duration: "5",
         comments: ""
       });
+      setErrors({});
     }
   }, [isOpen]);
+
+  // Fetch current authenticated user
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
+
+  // Fetch medications from database
+  const fetchMedications = async () => {
+    setLoadingMeds(true);
+    try {
+      // First try to fetch from a medications master table
+      const { data: medsData, error: medsError } = await supabase
+        .from('medications_master')
+        .select('name, generic_name, category')
+        .order('name');
+
+      if (medsError) {
+        console.log('No medications_master table, using defaults');
+        // Use default medications if table doesn't exist
+        setMedicationDB([
+          "Amoxicillin", "Paracetamol", "Ibuprofen", "Metformin", 
+          "Atorvastatin", "Omeprazole", "Azithromycin", "Pantoprazole", 
+          "Losartan", "Cetirizine", "Aspirin", "Clopidogrel",
+          "Metronidazole", "Clindamycin", "Penicillin", "Erythromycin",
+          "Doxycycline", "Ciprofloxacin", "Acetaminophen", "Codeine",
+          "Tramadol", "Prednisolone", "Chlorhexidine", "Lidocaine"
+        ]);
+      } else if (medsData && medsData.length > 0) {
+        // Extract medication names from the data
+        const medNames = medsData.map(med => med.name);
+        setMedicationDB(medNames);
+      } else {
+        // Fallback to default medications
+        setMedicationDB([
+          "Amoxicillin", "Paracetamol", "Ibuprofen", "Metformin", 
+          "Atorvastatin", "Omeprazole", "Azithromycin", "Pantoprazole"
+        ]);
+      }
+
+      // Also fetch frequently prescribed medications for this doctor
+      if (currentUser) {
+        const { data: freqMeds } = await supabase
+          .from('prescriptions')
+          .select('medication_name')
+          .eq('prescribed_by', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (freqMeds) {
+          const uniqueMeds = [...new Set(freqMeds.map(m => m.medication_name))];
+          setMedicationDB(prev => [...new Set([...uniqueMeds, ...prev])]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching medications:', error);
+      // Use defaults on error
+      setMedicationDB([
+        "Amoxicillin", "Paracetamol", "Ibuprofen", "Metformin"
+      ]);
+    } finally {
+      setLoadingMeds(false);
+    }
+  };
 
   // Handle Search Input
   const handleNameChange = (e) => {
@@ -41,10 +121,10 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
     setFormData(prev => ({ ...prev, name: value }));
     
     if (value.length > 0) {
-      const filtered = MEDICATION_DB.filter(med => 
+      const filtered = medicationDB.filter(med => 
         med.toLowerCase().includes(value.toLowerCase())
       );
-      setSuggestions(filtered);
+      setSuggestions(filtered.slice(0, 8)); // Limit suggestions to 8
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
@@ -54,6 +134,26 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
   const selectSuggestion = (name) => {
     setFormData(prev => ({ ...prev, name }));
     setShowSuggestions(false);
+    
+    // Auto-fetch common dosage if available
+    fetchCommonDosage(name);
+  };
+
+  // Fetch common dosage for selected medication
+  const fetchCommonDosage = async (medicationName) => {
+    try {
+      const { data } = await supabase
+        .from('medications_master')
+        .select('common_dosage')
+        .eq('name', medicationName)
+        .single();
+
+      if (data?.common_dosage) {
+        setFormData(prev => ({ ...prev, dosage: data.common_dosage }));
+      }
+    } catch (error) {
+      console.log('No common dosage found');
+    }
   };
 
   const toggleMeal = (meal) => {
@@ -63,27 +163,149 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Basic validation
-    if (!formData.name || !formData.dosage) return;
-
-    // Construct the "Frequency" string based on meals
-    const meals = Object.keys(formData.timingMeal)
-      .filter(k => formData.timingMeal[k])
-      .map(k => k.charAt(0).toUpperCase() + k.slice(1)) // Capitalize
-      .join("-");
+  const validateForm = () => {
+    const newErrors = {};
     
-    const frequency = meals ? `${meals} (${formData.timingFood} food)` : `Once daily (${formData.timingFood} food)`;
+    if (!formData.name.trim()) {
+      newErrors.name = "Medication name is required";
+    }
+    
+    if (!formData.dosage.trim()) {
+      newErrors.dosage = "Dosage is required";
+    }
+    
+    const hasMealSelected = Object.values(formData.timingMeal).some(v => v);
+    if (!hasMealSelected) {
+      newErrors.timing = "Please select at least one meal timing";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    onSave({
-      ...formData,
-      frequency, // Derived field for the table
-      status: "Active",
-      prescribedBy: "Dr. You", // Default
-      startDate: new Date().toISOString().split('T')[0]
-    });
-    onClose();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    setErrors({});
+
+    try {
+      // Construct the frequency string
+      const meals = Object.keys(formData.timingMeal)
+        .filter(k => formData.timingMeal[k])
+        .map(k => k.charAt(0).toUpperCase() + k.slice(1))
+        .join("-");
+      
+      const frequency = meals ? `${meals} (${formData.timingFood} food)` : `Once daily (${formData.timingFood} food)`;
+
+      // Calculate end date based on duration
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + parseInt(formData.duration));
+
+      // Prepare prescription data
+      const prescriptionData = {
+        patient_id: patientId || null,
+        medication_name: formData.name,
+        dosage: formData.dosage,
+        frequency: frequency,
+        timing_food: formData.timingFood,
+        timing_breakfast: formData.timingMeal.breakfast,
+        timing_lunch: formData.timingMeal.lunch,
+        timing_dinner: formData.timingMeal.dinner,
+        duration_days: parseInt(formData.duration),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        comments: formData.comments || null,
+        status: 'active',
+        prescribed_by: currentUser?.id || null,
+        prescribed_by_name: currentUser?.user_metadata?.full_name || 'Dr. You',
+        created_at: new Date().toISOString()
+      };
+
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .insert([prescriptionData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add medication to medications_history for tracking
+      await supabase
+        .from('medications_history')
+        .insert([{
+          patient_id: patientId,
+          medication_name: formData.name,
+          prescribed_date: startDate.toISOString(),
+          prescribed_by: currentUser?.id
+        }])
+        .select(); // Don't throw error if this fails
+
+      // Create a reminder/notification (optional)
+      if (patientId) {
+        await createMedicationReminders(data.id, prescriptionData);
+      }
+
+      // Call parent's onSave with the created prescription
+      onSave(data);
+      
+      // Show success message
+      alert('Medication added successfully!');
+      onClose();
+      
+    } catch (error) {
+      console.error('Error adding medication:', error);
+      setErrors({ submit: error.message || 'Failed to add medication. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create medication reminders
+  const createMedicationReminders = async (prescriptionId, prescriptionData) => {
+    try {
+      const reminders = [];
+      const meals = ['breakfast', 'lunch', 'dinner'];
+      const mealTimes = {
+        breakfast: '08:00:00',
+        lunch: '13:00:00',
+        dinner: '20:00:00'
+      };
+
+      // Create reminders for each selected meal time
+      for (const meal of meals) {
+        if (prescriptionData[`timing_${meal}`]) {
+          // Create reminders for each day of the duration
+          for (let day = 0; day < prescriptionData.duration_days; day++) {
+            const reminderDate = new Date(prescriptionData.start_date);
+            reminderDate.setDate(reminderDate.getDate() + day);
+            
+            reminders.push({
+              prescription_id: prescriptionId,
+              patient_id: prescriptionData.patient_id,
+              medication_name: prescriptionData.medication_name,
+              reminder_time: `${reminderDate.toISOString().split('T')[0]}T${mealTimes[meal]}`,
+              meal_time: meal,
+              status: 'pending',
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      if (reminders.length > 0) {
+        await supabase
+          .from('medication_reminders')
+          .insert(reminders);
+      }
+    } catch (error) {
+      console.error('Error creating reminders:', error);
+      // Don't throw - reminders are optional
+    }
   };
 
   if (!isOpen) return null;
@@ -100,16 +322,30 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
             </div>
             <h2 className="text-lg font-bold text-gray-900">Add Medication</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+          <button 
+            onClick={onClose} 
+            disabled={loading}
+            className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors disabled:opacity-50"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Error Alert */}
+        {errors.submit && (
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            <span className="text-sm text-red-700">{errors.submit}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           
           {/* 1. Medication Name (Searchable) */}
           <div className="relative z-20">
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Medication Name</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Medication Name <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
               <input 
@@ -117,8 +353,11 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                 value={formData.name}
                 onChange={handleNameChange}
                 onFocus={() => formData.name && setShowSuggestions(true)}
-                placeholder="Search or type name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder={loadingMeds ? "Loading medications..." : "Search or type name..."}
+                className={`w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
+                  errors.name ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={loading || loadingMeds}
                 required
               />
               {/* Autocomplete Dropdown */}
@@ -129,31 +368,44 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                       key={med}
                       type="button"
                       onClick={() => selectSuggestion(med)}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700"
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm text-gray-700 transition-colors"
                     >
                       {med}
                     </button>
                   ))}
                 </div>
               )}
+              {errors.name && (
+                <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+              )}
             </div>
           </div>
 
           {/* 2. Dosage */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Dosage</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Dosage <span className="text-red-500">*</span>
+            </label>
             <input 
               type="text"
               value={formData.dosage}
               onChange={(e) => setFormData({...formData, dosage: e.target.value})}
               placeholder="e.g. 500mg, 10ml"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              className={`w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none ${
+                errors.dosage ? 'border-red-300' : 'border-gray-300'
+              }`}
+              disabled={loading}
               required
             />
+            {errors.dosage && (
+              <p className="text-xs text-red-500 mt-1">{errors.dosage}</p>
+            )}
           </div>
 
           {/* 3. Timings (Before/After & Meals) */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+          <div className={`p-4 bg-gray-50 rounded-xl border space-y-4 ${
+            errors.timing ? 'border-red-300' : 'border-gray-100'
+          }`}>
             
             {/* Before/After Radio */}
             <div>
@@ -161,7 +413,9 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
               <div className="flex gap-4">
                 {['before', 'after'].map((type) => (
                   <label key={type} className="flex items-center gap-2 cursor-pointer group">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${formData.timingFood === type ? 'border-blue-600' : 'border-gray-300'}`}>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                      formData.timingFood === type ? 'border-blue-600' : 'border-gray-300'
+                    }`}>
                       {formData.timingFood === type && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
                     </div>
                     <input 
@@ -170,7 +424,8 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                       value={type}
                       checked={formData.timingFood === type}
                       onChange={() => setFormData({...formData, timingFood: type})}
-                      className="hidden" 
+                      className="hidden"
+                      disabled={loading} 
                     />
                     <span className="text-sm font-medium text-gray-700 capitalize group-hover:text-blue-600 transition-colors">
                       {type} Food
@@ -183,7 +438,7 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
             {/* Meal Checkboxes */}
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                Breakfast / Lunch / Dinner
+                Select Meal Times <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {['breakfast', 'lunch', 'dinner'].map((meal) => (
@@ -191,18 +446,22 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                     key={meal}
                     type="button"
                     onClick={() => toggleMeal(meal)}
+                    disabled={loading}
                     className={`
                       px-4 py-1.5 rounded-full text-sm font-medium border transition-all
                       ${formData.timingMeal[meal] 
                         ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105' 
                         : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
-                      }
+                      } disabled:opacity-50
                     `}
                   >
                     {meal.charAt(0).toUpperCase() + meal.slice(1)}
                   </button>
                 ))}
               </div>
+              {errors.timing && (
+                <p className="text-xs text-red-500 mt-2">{errors.timing}</p>
+              )}
             </div>
           </div>
 
@@ -216,8 +475,9 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                 value={formData.duration}
                 onChange={(e) => setFormData({...formData, duration: e.target.value})}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                disabled={loading}
               >
-                {[1,2,3,4,5,7,10,15,30].map(num => (
+                {[1,2,3,4,5,7,10,14,15,21,30,60,90].map(num => (
                   <option key={num} value={num}>{num} Days</option>
                 ))}
               </select>
@@ -233,6 +493,7 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
                 onChange={(e) => setFormData({...formData, comments: e.target.value})}
                 placeholder="Special instructions..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                disabled={loading}
               />
             </div>
           </div>
@@ -242,21 +503,46 @@ export default function AddMedication({ isOpen, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+              disabled={loading}
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <Save className="w-4 h-4" />
-              Save Medication
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Medication
+                </>
+              )}
             </button>
           </div>
 
         </form>
       </div>
+
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes zoom-in {
+          from { transform: scale(0.95); }
+          to { transform: scale(1); }
+        }
+        .animate-in {
+          animation: fade-in 0.2s ease-out, zoom-in 0.2s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

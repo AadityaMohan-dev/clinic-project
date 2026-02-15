@@ -1,22 +1,113 @@
-import React, { useState } from 'react';
-import { X, Calendar, Clock, User, FileText, Stethoscope, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Clock, User, FileText, Stethoscope, AlertCircle, Loader2 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
-function EditAppointment({ onClose, appointment }) {
+// Initialize Supabase client
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+function EditAppointment({ onClose, appointment, onUpdate }) {
   const [formData, setFormData] = useState({
-    patientName: appointment?.patientName || "John Doe",
-    date: appointment?.date || "2024-06-15",
-    time: appointment?.time || "10:30",
-    doctor: appointment?.doctorName || "Dr. Smith",
-    reason: appointment?.reason || "Regular Checkup",
-    status: appointment?.status || "pending",
-    notes: appointment?.notes || ""
+    patientName: "",
+    date: "",
+    time: "",
+    doctor: "",
+    doctorId: null,
+    reason: "",
+    status: "pending",
+    notes: "",
+    appointmentType: "Checkup"
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [originalDateTime, setOriginalDateTime] = useState(null);
+
+  // Initialize form data from appointment prop
+  useEffect(() => {
+    if (appointment) {
+      // Parse the appointment date
+      const appointmentDate = new Date(appointment.appointment_date || appointment.date);
+      const dateStr = appointmentDate.toISOString().split('T')[0];
+      const timeStr = appointmentDate.toTimeString().slice(0, 5); // HH:MM format
+
+      setFormData({
+        patientName: appointment.patient_name || appointment.patientName || "",
+        date: dateStr,
+        time: timeStr,
+        doctor: appointment.doctor_name || appointment.doctorName || "",
+        doctorId: appointment.doctor_id || null,
+        reason: appointment.reason || "",
+        status: appointment.status || "pending",
+        notes: appointment.notes || "",
+        appointmentType: appointment.appointment_type || "Checkup"
+      });
+
+      setOriginalDateTime({
+        date: dateStr,
+        time: timeStr,
+        doctorId: appointment.doctor_id
+      });
+    }
+
+    fetchDoctors();
+  }, [appointment]);
+
+  // Fetch available doctors
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('id, name, specialization')
+        .eq('active', true)
+        .order('name');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setDoctors(data);
+      } else {
+        // Fallback doctors
+        setDoctors([
+          { id: 1, name: 'Dr. Smith', specialization: 'General' },
+          { id: 2, name: 'Dr. Johnson', specialization: 'Orthodontics' },
+          { id: 3, name: 'Dr. Lee', specialization: 'Pediatric' },
+          { id: 4, name: 'Dr. Williams', specialization: 'Periodontics' },
+          { id: 5, name: 'Dr. Brown', specialization: 'Endodontics' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      // Use fallback
+      setDoctors([
+        { id: 1, name: 'Dr. Smith' },
+        { id: 2, name: 'Dr. Johnson' },
+        { id: 3, name: 'Dr. Lee' }
+      ]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // If doctor is changed, update both name and ID
+    if (name === 'doctor') {
+      const selectedDoctor = doctors.find(d => d.name === value);
+      setFormData(prev => ({ 
+        ...prev, 
+        doctor: value,
+        doctorId: selectedDoctor?.id || null
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -25,22 +116,195 @@ function EditAppointment({ onClose, appointment }) {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
-    if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.time) newErrors.time = "Time is required";
-    if (!formData.doctor) newErrors.doctor = "Doctor selection is required";
-    if (!formData.reason.trim()) newErrors.reason = "Reason is required";
+    
+    if (!formData.patientName.trim()) {
+      newErrors.patientName = "Patient name is required";
+    }
+    
+    if (!formData.date) {
+      newErrors.date = "Date is required";
+    } else {
+      // Check if date is not in the past
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.date = "Cannot schedule appointments in the past";
+      }
+    }
+    
+    if (!formData.time) {
+      newErrors.time = "Time is required";
+    }
+    
+    if (!formData.doctor) {
+      newErrors.doctor = "Doctor selection is required";
+    }
+    
+    if (!formData.reason.trim()) {
+      newErrors.reason = "Reason is required";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  // Check for appointment conflicts
+  const checkConflicts = async () => {
+    try {
+      const appointmentDateTime = new Date(`${formData.date}T${formData.time}`);
+      const endTime = new Date(appointmentDateTime.getTime() + 30 * 60000); // 30 min slots
+
+      // Skip conflict check if date/time/doctor hasn't changed
+      if (
+        originalDateTime &&
+        formData.date === originalDateTime.date &&
+        formData.time === originalDateTime.time &&
+        formData.doctorId === originalDateTime.doctorId
+      ) {
+        return true;
+      }
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('doctor_id', formData.doctorId)
+        .gte('appointment_date', appointmentDateTime.toISOString())
+        .lt('appointment_date', endTime.toISOString())
+        .neq('status', 'cancelled')
+        .neq('id', appointment.id); // Exclude current appointment
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setErrors(prev => ({ 
+          ...prev, 
+          time: 'This time slot is already booked for this doctor' 
+        }));
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error checking conflicts:', error);
+      return true; // Allow update if conflict check fails
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log("Form submitted:", formData);
-      // Add your save logic here
+    
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      // Check for conflicts
+      const noConflicts = await checkConflicts();
+      if (!noConflicts) {
+        setLoading(false);
+        return;
+      }
+
+      // Combine date and time
+      const appointmentDateTime = new Date(`${formData.date}T${formData.time}`);
+
+      // Prepare update data
+      const updateData = {
+        patient_name: formData.patientName,
+        doctor_id: formData.doctorId,
+        doctor_name: formData.doctor,
+        appointment_date: appointmentDateTime.toISOString(),
+        appointment_type: formData.appointmentType,
+        reason: formData.reason,
+        notes: formData.notes || null,
+        status: formData.status,
+        updated_at: new Date().toISOString()
+      };
+
+      // Update appointment in Supabase
+      const { data, error } = await supabase
+        .from('appointments')
+        .update(updateData)
+        .eq('id', appointment.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log the change in appointment history
+      await supabase
+        .from('appointment_history')
+        .insert([{
+          appointment_id: appointment.id,
+          action: 'updated',
+          changed_fields: JSON.stringify({
+            from: {
+              date: originalDateTime.date,
+              time: originalDateTime.time,
+              doctor: appointment.doctor_name,
+              status: appointment.status
+            },
+            to: {
+              date: formData.date,
+              time: formData.time,
+              doctor: formData.doctor,
+              status: formData.status
+            }
+          }),
+          performed_by: appointment.patient_id, // Or current user ID
+          created_at: new Date().toISOString()
+        }]);
+
+      // Send notification to patient if date/time changed
+      if (
+        formData.date !== originalDateTime.date ||
+        formData.time !== originalDateTime.time
+      ) {
+        await supabase
+          .from('notifications')
+          .insert([{
+            user_id: appointment.patient_id,
+            title: 'Appointment Rescheduled',
+            message: `Your appointment has been rescheduled to ${new Date(appointmentDateTime).toLocaleDateString()} at ${formData.time}`,
+            type: 'appointment',
+            related_id: appointment.id,
+            read: false,
+            created_at: new Date().toISOString()
+          }]);
+
+        // Send email notification (optional)
+        try {
+          await supabase.functions.invoke('send-appointment-update', {
+            body: {
+              to: appointment.patient_email,
+              patientName: formData.patientName,
+              oldDateTime: new Date(`${originalDateTime.date}T${originalDateTime.time}`),
+              newDateTime: appointmentDateTime,
+              doctorName: formData.doctor,
+              reason: formData.reason
+            }
+          });
+        } catch (emailError) {
+          console.error('Failed to send notification email:', emailError);
+        }
+      }
+
+      // Call parent's onUpdate callback
+      if (onUpdate) {
+        onUpdate(data);
+      }
+
+      // Show success message
+      alert('Appointment updated successfully!');
       onClose();
+
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      setErrors({ submit: error.message || 'Failed to update appointment. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,12 +324,21 @@ function EditAppointment({ onClose, appointment }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-700 transition-all duration-200"
+            disabled={loading}
+            className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-700 transition-all duration-200 disabled:opacity-50"
             aria-label="Close modal"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
+
+        {/* Error Alert */}
+        {errors.submit && (
+          <div className="mx-4 sm:mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+            <span className="text-sm text-red-700">{errors.submit}</span>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -80,7 +353,8 @@ function EditAppointment({ onClose, appointment }) {
               name="patientName"
               value={formData.patientName}
               onChange={handleChange}
-              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+              disabled={loading}
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed ${
                 errors.patientName ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
               }`}
               placeholder="Enter patient name"
@@ -106,7 +380,9 @@ function EditAppointment({ onClose, appointment }) {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                min={new Date().toISOString().split('T')[0]}
+                disabled={loading}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed ${
                   errors.date ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               />
@@ -129,7 +405,8 @@ function EditAppointment({ onClose, appointment }) {
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                disabled={loading}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed ${
                   errors.time ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               />
@@ -154,16 +431,19 @@ function EditAppointment({ onClose, appointment }) {
                 name="doctor"
                 value={formData.doctor}
                 onChange={handleChange}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                disabled={loading || loadingDoctors}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed ${
                   errors.doctor ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <option value="">Select a doctor</option>
-                <option value="Dr. Smith">Dr. Smith</option>
-                <option value="Dr. Johnson">Dr. Johnson</option>
-                <option value="Dr. Lee">Dr. Lee</option>
-                <option value="Dr. Williams">Dr. Williams</option>
-                <option value="Dr. Brown">Dr. Brown</option>
+                <option value="">
+                  {loadingDoctors ? 'Loading...' : 'Select a doctor'}
+                </option>
+                {doctors.map((doctor) => (
+                  <option key={doctor.id} value={doctor.name}>
+                    {doctor.name} {doctor.specialization && `- ${doctor.specialization}`}
+                  </option>
+                ))}
               </select>
               {errors.doctor && (
                 <p className="flex items-center gap-1 text-xs sm:text-sm text-red-600">
@@ -183,13 +463,40 @@ function EditAppointment({ onClose, appointment }) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                disabled={loading}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="pending">Pending</option>
-                <option value="active">Active</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="no_show">No Show</option>
               </select>
             </div>
+          </div>
+
+          {/* Appointment Type */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-gray-700">
+              <FileText className="w-4 h-4 text-blue-600" />
+              Appointment Type
+            </label>
+            <select
+              name="appointmentType"
+              value={formData.appointmentType}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
+            >
+              <option value="Checkup">Checkup</option>
+              <option value="Cleaning">Cleaning</option>
+              <option value="Extraction">Extraction</option>
+              <option value="Root Canal">Root Canal</option>
+              <option value="Whitening">Whitening</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Follow-up">Follow-up</option>
+            </select>
           </div>
 
           {/* Reason for Visit */}
@@ -203,7 +510,8 @@ function EditAppointment({ onClose, appointment }) {
               value={formData.reason}
               onChange={handleChange}
               rows="3"
-              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none ${
+              disabled={loading}
+              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none disabled:bg-gray-100 disabled:cursor-not-allowed ${
                 errors.reason ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
               }`}
               placeholder="Enter reason for visit"
@@ -227,7 +535,8 @@ function EditAppointment({ onClose, appointment }) {
               value={formData.notes}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+              disabled={loading}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg hover:border-gray-400 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none disabled:bg-gray-100"
               placeholder="Add any additional notes..."
             />
           </div>
@@ -238,16 +547,25 @@ function EditAppointment({ onClose, appointment }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-semibold text-sm sm:text-base"
+            disabled={loading}
+            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-semibold text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40"
+            disabled={loading}
+            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/30 hover:shadow-blue-600/40 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Save Changes
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
       </div>
